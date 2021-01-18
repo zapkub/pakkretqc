@@ -1,0 +1,7 @@
+{{define "head_tags"}} {{end}}
+{{define "scripts"}}
+    <script>
+        window.__DATA__ = JSON.parse("{{toJSON .}}")
+    </script>
+    <script type="module" src="/dist/domain.js" defer></script>
+{{end}}

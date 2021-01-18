@@ -1,3 +1,11 @@
-.login-form .username, .password {
+.login-form .text-field {
     margin-bottom: 8px;
+}
+
+
+.domain-confirm-actions {
+    margin-top: 8px;
+}
+.domain-confirm-actions button {
+    margin-right: 4px; 
 }

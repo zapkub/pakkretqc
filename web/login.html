@@ -1,6 +1,9 @@
 {{define "head_tags"}}
-<link rel="stylesheet" href="dist/login.css"></link>
+<link rel="stylesheet" href="/dist/styles/login.css"></link>
 {{end}}
 {{define "scripts"}}
-    <script type="module" src="dist/login.js" defer></script>
+    <script>
+        window.__DATA__ = JSON.parse("{{toJSON .}}")
+    </script>
+    <script type="module" src="/dist/login.js" defer></script>
 {{end}}

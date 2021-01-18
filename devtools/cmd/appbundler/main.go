@@ -15,6 +15,8 @@ func main() {
 		EntryPoints: []string{
 			fsutil.PathFromWebDir("app/index.tsx"),
 			fsutil.PathFromWebDir("app/login.tsx"),
+			fsutil.PathFromWebDir("app/domain.tsx"),
+			fsutil.PathFromWebDir("app/project.tsx"),
 		},
 		Outdir:    fsutil.PathFromWebDir("dist"),
 		Bundle:    true,
@@ -35,6 +37,6 @@ func main() {
 		log.Fatalf("build error: %+v", result.Errors)
 	}
 
-	exec.Command("/bin/bash", "-c", fmt.Sprintf("cp -R %s %s", fsutil.PathFromWebDir("styles"), fsutil.PathFromWebDir("dist/styles"))).Run()
+	exec.Command("/bin/bash", "-c", fmt.Sprintf("cp -R %s %s", fsutil.PathFromWebDir("styles"), fsutil.PathFromWebDir("dist"))).Run()
 
 }
