@@ -1,0 +1,21 @@
+{
+  "name": "pakkretqc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/react": "^16.14.2",
+    "@types/react-dom": "^16.9.10",
+    "esbuild": "^0.8.33"
+  },
+  "dependencies": {
+    "@fluentui/react": "^7.155.4",
+    "react": "^16.14.0",
+    "react-dom": "^16.14.0"
+  }
+}
