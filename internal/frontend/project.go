@@ -3,39 +3,50 @@ package frontend
 import (
 	"log"
 	"net/http"
+	"path"
+	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/zapkub/pakkretqc/internal/middleware"
 	"github.com/zapkub/pakkretqc/pkg/almsdk"
 )
 
 type projectPage struct {
-	Total    int               `json:"total"`
-	Domain   string            `json:"domain"`
-	Project  string            `json:"project"`
-	Defects  []*almsdk.Deflect `json:"defects"`
-	Username string            `json:"username"`
+	Total    int              `json:"total"`
+	Domain   string           `json:"domain"`
+	Project  string           `json:"project"`
+	Defects  []*defectWithURL `json:"defects"`
+	Username string           `json:"username"`
+}
+
+type defectWithURL struct {
+	*almsdk.Defect
+	URL string `json:"url"`
 }
 
 func (s *Server) projectHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	var (
-		page    projectPage
-		ctx     = almsdk.AppendSessionCookieToContext(r.Context(), r)
-		domain  = vars["domain"]
-		project = vars["project"]
+		page      projectPage
+		ctx       = r.Context()
+		domain    = vars["domain"]
+		project   = vars["project"]
+		almclient = middleware.MustGetALMClient(ctx)
 	)
 
 	defer func() {
 		s.servePage(w, "project", page)
 	}()
-	deflect, total, err := s.almclient.Deflects(ctx, domain, project, 50, 0, "-creation-time")
+	deflect, total, err := almclient.Defects(ctx, domain, project, 50, 0, "-creation-time")
 	if err != nil {
 		log.Printf("ERROR: %+v", err)
 		return
 	}
 	page.Project = project
 	page.Domain = domain
-	page.Defects = deflect
+	for _, d := range deflect {
+		page.Defects = append(page.Defects, &defectWithURL{Defect: d, URL: path.Join("/domains", domain, "/projects", project, "/defects", strconv.Itoa(d.ID))})
+	}
 	page.Total = total
 	page.Username = UserName(r)
 

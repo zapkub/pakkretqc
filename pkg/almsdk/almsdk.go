@@ -2,11 +2,11 @@ package almsdk
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"path"
 	"strconv"
@@ -17,6 +17,7 @@ import (
 type Client struct {
 	client *http.Client
 	config *ClientOptions
+	token  string
 }
 
 type ClientOptions struct {
@@ -24,9 +25,12 @@ type ClientOptions struct {
 }
 
 func New(opt *ClientOptions) *Client {
+	cookieJar, _ := cookiejar.New(nil)
 	return &Client{
 		client: &http.Client{
-			Transport: http.DefaultTransport,
+			Transport:     http.DefaultTransport,
+			CheckRedirect: http.DefaultClient.CheckRedirect,
+			Jar:           cookieJar,
 		},
 		config: opt,
 	}
@@ -43,32 +47,29 @@ func join(endpoint string, pathname ...string) *url.URL {
 
 type sessionCookieContext struct{}
 
-func AppendSessionCookieToContext(ctx context.Context, r *http.Request) context.Context {
-	return context.WithValue(ctx, sessionCookieContext{}, r.Cookies())
-}
-func setCookieToRequest(ctx context.Context, req *http.Request) {
-	if cookies, ok := ctx.Value(sessionCookieContext{}).([]*http.Cookie); ok {
-		for _, cook := range cookies {
-			req.AddCookie(cook)
-		}
+func (c *Client) setTokenToRequest(ctx context.Context, req *http.Request) {
+	if token, ok := ctx.Value(sessionCookieContext{}).(string); ok {
+		req.Header.Set("Authorization", "Basic "+token)
+		c.Authenticate(ctx, token)
 	}
 }
 
-func (c *Client) Authenticate(ctx context.Context, user, password string) ([]*http.Cookie, error) {
+func (c *Client) Authenticate(ctx context.Context, authtoken string) error {
 
 	req, err := http.NewRequest("POST", join(c.config.Endpoint, "authentication/sign-in").String(), nil)
 	req.Header.Add("Content-Type", "application/xml")
-	token := base64.URLEncoding.EncodeToString([]byte(user + ":" + password))
-	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", token))
+	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", authtoken))
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if resp.StatusCode >= 400 {
 		respb, _ := ioutil.ReadAll(resp.Body)
-		return nil, fmt.Errorf("login return %d: %s", resp.StatusCode, string(respb))
+		return fmt.Errorf("login return %d: %s", resp.StatusCode, string(respb))
 	}
-	return resp.Cookies(), nil
+	c.token = authtoken
+	c.client.Jar.SetCookies(join(c.config.Endpoint), resp.Cookies())
+	return nil
 }
 
 type Projects struct {
@@ -76,10 +77,9 @@ type Projects struct {
 }
 
 func (c *Client) Projects(ctx context.Context, domain string) ([]Projects, error) {
-
 	var req, err = http.NewRequest("GET", join(c.config.Endpoint, "domains", domain, "projects").String(), nil)
 	req.Header.Set("Accept", "application/json")
-	setCookieToRequest(ctx, req)
+	c.setTokenToRequest(ctx, req)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -109,13 +109,17 @@ type Domains struct {
 func (c *Client) Domains(ctx context.Context) ([]*Domains, error) {
 	var req, _ = http.NewRequest("GET", join(c.config.Endpoint, "domains").String(), nil)
 	req.Header.Set("Accept", "application/json")
-	setCookieToRequest(ctx, req)
+
+	c.setTokenToRequest(ctx, req)
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
 	if resp.StatusCode > 300 {
+		bb, _ := ioutil.ReadAll(resp.Body)
+		fmt.Println(string(bb))
 		return nil, fmt.Errorf("unexpected error: /domains return %d status", resp.StatusCode)
 	}
 
@@ -123,6 +127,7 @@ func (c *Client) Domains(ctx context.Context) ([]*Domains, error) {
 		Results []*Domains `json:"results"`
 	}
 	var body respbody
+	defer resp.Body.Close()
 	err = json.NewDecoder(resp.Body).Decode(&body)
 	if err != nil {
 		return nil, err
@@ -130,7 +135,7 @@ func (c *Client) Domains(ctx context.Context) ([]*Domains, error) {
 	return body.Results, nil
 }
 
-type Deflect struct {
+type Defect struct {
 	DevComments  string   `json:"dev-comments"`
 	Description  string   `json:"description"`
 	LastModified *ALMTime `json:"last-modified"`
@@ -166,6 +171,7 @@ func (a *ALMTime) UnmarshalJSON(b []byte) error {
 	}
 	return nil
 }
+
 func (a *ALMTime) Time() time.Time {
 	return a.t
 }
@@ -174,7 +180,25 @@ func (a *ALMTime) MarshalJSON() ([]byte, error) {
 	return a.t.MarshalJSON()
 }
 
-func (c *Client) Deflects(ctx context.Context, domain, project string, limit, offset int, orderFlag string) ([]*Deflect, int, error) {
+func (c *Client) Defect(ctx context.Context, domain, project, id string) (*Defect, error) {
+
+	var req, _ = http.NewRequest("GET", join(c.config.Endpoint, "domains", domain, "projects", project, "defects", id).String(), nil)
+	req.Header.Set("Accept", "application/json")
+
+	c.setTokenToRequest(ctx, req)
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode > 300 {
+		message, _ := ioutil.ReadAll(resp.Body)
+		return nil, fmt.Errorf("unexpected error: /domains/%s/projects/%s/defects return %d status\n%s", domain, project, resp.StatusCode, string(message))
+	}
+	var deflect Defect
+	err = json.NewDecoder(resp.Body).Decode(&deflect)
+	return &deflect, nil
+}
+func (c *Client) Defects(ctx context.Context, domain, project string, limit, offset int, orderFlag string) ([]*Defect, int, error) {
 
 	var req, _ = http.NewRequest("GET", join(c.config.Endpoint, "domains", domain, "projects", project, "defects").String(), nil)
 	req.Header.Set("Accept", "application/json")
@@ -182,7 +206,7 @@ func (c *Client) Deflects(ctx context.Context, domain, project string, limit, of
 	q.Add("order-by", orderFlag)
 	q.Add("limit", strconv.Itoa(limit))
 	req.URL.RawQuery = q.Encode()
-	setCookieToRequest(ctx, req)
+	c.setTokenToRequest(ctx, req)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, 0, err
@@ -194,7 +218,7 @@ func (c *Client) Deflects(ctx context.Context, domain, project string, limit, of
 	}
 
 	type respbody struct {
-		Data []*Deflect `json:"data"`
+		Data []*Defect `json:"data"`
 	}
 	var body respbody
 	err = json.NewDecoder(resp.Body).Decode(&body)

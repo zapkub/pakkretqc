@@ -1,4 +1,6 @@
-{{define "head_tags"}} {{end}}
+{{define "head_tags"}}
+    <link rel="stylesheet" href="/dist/styles/project.css"></link>
+{{end}}
 {{define "scripts"}}
     <script>
         window.__DATA__ = JSON.parse("{{toJSON .}}")

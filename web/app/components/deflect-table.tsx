@@ -1,7 +1,14 @@
-import { DetailsList, IColumn, SelectionMode } from '@fluentui/react'
-import * as React from 'react'
+import { DetailsList, IColumn, Link, mergeStyleSets, SelectionMode } from '@fluentui/react';
+import * as React from 'react';
+import * as timeago from 'timeago.js';
 
-
+const classNames = mergeStyleSets({
+    severifyCell: {
+      textAlign: 'center'
+    },
+    nameCell: {
+    }
+})
 const columns: IColumn[] = [
     {
         key: 'col1',
@@ -15,7 +22,10 @@ const columns: IColumn[] = [
         name: "Severity",
         fieldName: "severity",
         minWidth: 55,
-        maxWidth: 55, 
+        maxWidth: 55,
+        data: 'string',
+        className: classNames.severifyCell,
+        isRowHeader: true
     },
     {
         key: 'col3',
@@ -23,6 +33,10 @@ const columns: IColumn[] = [
         fieldName: "name",
         minWidth: 210,
         isResizable: true,
+        isRowHeader: true,
+        onRender: (item) =>{
+            return <Link target="popup" href={item['url']}>{item['name']}</Link>
+        }
     },
     {
         key: 'col22',
@@ -49,12 +63,12 @@ const columns: IColumn[] = [
         key: 'col4',
         name: 'Created Date',
         fieldName: 'creation-time',
-        minWidth: 120,
-        maxWidth: 120,
+        minWidth: 100,
+        maxWidth: 100,
     },
 ]
 
-export const DeflectTable = (props: { data: Deflect[] }) => {
+export const DefectTable = (props: { data: Deflect[] }) => {
 
     return (
         <div>
@@ -62,11 +76,25 @@ export const DeflectTable = (props: { data: Deflect[] }) => {
                 selectionMode={SelectionMode.none}
                 columns={columns}
                 items={props.data.map(rec => {
-                    rec["creation-time"] = new Date(rec["creation-time"]).toLocaleString()
-                    rec["last-modified"] = new Date(rec["last-modified"]).toLocaleString()
+                    rec["creation-time"] = new Date(rec["creation-time"]).toLocaleDateString()
+                    rec["last-modified"] = timeago.format(rec["last-modified"])
+                    rec.severity = severityMap(rec.severity)
                     return rec
                 })}
             ></DetailsList>
         </div>
     )
+}
+
+const severityMap = (v: string) => {
+    switch (v) {
+        case "1":
+            return "🤬"
+        case "2":
+            return "😱"
+        case "3":
+            return "😕"
+        case "4":
+            return "😒"
+    }
 }

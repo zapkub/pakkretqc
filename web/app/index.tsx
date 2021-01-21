@@ -1,9 +1,21 @@
 
+import { Button, Fabric } from '@fluentui/react'
 import * as React from 'react'
 import { render } from 'react-dom'
 
 
-render(<div>Hi <a href="/login">Login</a></div>, document.getElementById("pakkretqc-root"))
+const IndexPage = () => {
+    return (
+        <div>
+            <Fabric>
+                <h2> Welcome to PakkretQC 💁🏼‍♂️</h2>
+                <Button as="a" href="/login">Login</Button>
+            </Fabric>
+        </div>
+    )
+}
+
+render(<IndexPage />, document.getElementById("pakkretqc-root"))
 
 
 

@@ -1,0 +1,16 @@
+
+
+.project-page { 
+    padding: 0 8px;
+}
+
+.canopy {
+    padding: 8px 0px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.user-profile-box {
+    text-align: right;
+}

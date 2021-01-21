@@ -1,17 +1,31 @@
 package middleware
 
-import "net/http"
+import (
+	"context"
+	"net/http"
+)
 
-func SessionFromCookie(r *http.Request) (token string, domain string, ok bool) {
-	if tokencookie, err := r.Cookie("LWSSO_COOKIE_KEY"); err == nil {
-		token = tokencookie.Value
-	} else {
-		return "", "", false
+func SessionFromCookie(r *http.Request) (token string, ok bool) {
+	if tokencookie, err := r.Cookie("token"); err == nil && tokencookie.Value != "" {
+		return tokencookie.Value, true
 	}
-	if domaincookie, err := r.Cookie("currentDomain"); err == nil {
-		domain = domaincookie.Value
-	} else {
-		return "", "", false
+	return "", false
+}
+
+type sessiontokenkey struct{}
+
+func GetSessionToken(ctx context.Context) (string, bool) {
+	if token, ok := ctx.Value(sessiontokenkey{}).(string); ok {
+		return token, true
 	}
-	return token, domain, true
+	return "", false
+}
+func Session(n http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		token, ok := SessionFromCookie(r)
+		if ok {
+			r = r.WithContext(context.WithValue(r.Context(), sessiontokenkey{}, token))
+		}
+		n.ServeHTTP(rw, r)
+	})
 }

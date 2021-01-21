@@ -7,16 +7,15 @@ import (
 	"net/http"
 
 	"github.com/zapkub/pakkretqc/internal/fsutil"
-	"github.com/zapkub/pakkretqc/pkg/almsdk"
 )
 
 type Server struct {
-	almclient   *almsdk.Client
 	apptemplate map[string]*template.Template
 }
 
 func (s *Server) Install(handle func(string, http.Handler)) {
 	handle("/login", http.HandlerFunc(s.loginHandler))
+	handle("/domains/{domain}/projects/{project}/defects/{id}", http.HandlerFunc(s.defectPageHandler))
 	handle("/domains/{domain}/projects/{project}", http.HandlerFunc(s.projectHandler))
 	handle("/domains/{domain}", http.HandlerFunc(s.domainHandler))
 	handle("/", http.HandlerFunc(s.indexHandler))
@@ -48,15 +47,14 @@ func (s *Server) servePage(w http.ResponseWriter, pagename string, page interfac
 	}
 }
 
-func New(almclient *almsdk.Client) *Server {
-
+func New() *Server {
 	return &Server{
-		almclient: almclient,
 		apptemplate: map[string]*template.Template{
 			"index":   parseTemplates(fsutil.PathFromWebDir("index.html")),
 			"login":   parseTemplates(fsutil.PathFromWebDir("login.html")),
 			"domain":  parseTemplates(fsutil.PathFromWebDir("domain.html")),
 			"project": parseTemplates(fsutil.PathFromWebDir("project.html")),
+			"defect":  parseTemplates(fsutil.PathFromWebDir("defect.html")),
 		},
 	}
 }

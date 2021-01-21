@@ -1,5 +1,5 @@
 
-import { Dropdown, PrimaryButton, TextField } from '@fluentui/react';
+import { Dropdown, Fabric, FontSizes, Label, PrimaryButton, TextField } from '@fluentui/react';
 import * as React from 'react';
 import { render } from 'react-dom';
 
@@ -14,36 +14,42 @@ interface LoginPageData {
 export const LoginPage = (props: { data: LoginPageData }) => {
     const [domain, setDomain] = React.useState<string>("")
     return (
-        <div>
-            <form className="login-form" method="POST" action="/login">
-                <TextField disabled={!!props.data.username} defaultValue={props.data.username} name="username" placeholder="username" className="text-field" id="username"></TextField>
-                <TextField disabled={!!props.data.username} name="password" placeholder="password" type="password" className="text-field" id="password"></TextField>
-                <PrimaryButton disabled={!!props.data.username} as="input" type="submit">Authenticate</PrimaryButton>
-                {
-                    props.data.username ? (
-                        <>
-                            <Dropdown
-                                label="Domain"
-                                selectedKey={domain}
-                                onChange={(event, item) => setDomain(item.data)}
-                                options={props.data.domains.map(domain => {
-                                    return {
-                                        key: domain.name,
-                                        text: domain.name,
-                                        data: domain.name,
-                                    }
-                                })}
-                            ></Dropdown>
-                            <input type="hidden" name="currentDomain" value={domain} />
-                            <div className="domain-confirm-actions">
-                                <PrimaryButton as="input" name="action" value="proceed" type="submit">Proceed</PrimaryButton>
-                                <PrimaryButton as="input" name="action" value="cancel" type="submit">Cancel</PrimaryButton>
-                            </div>
-                        </>
-                    ) : null
-                }
-            </form>
-        </div>
+        <Fabric className="content">
+            <div className="login-form-container" style={{}}>
+                <h2>Before you begin please sign-in 🚪</h2>
+                <form className="login-form" method="POST" action="/login">
+                    <TextField disabled={!!props.data.username} defaultValue={props.data.username} name="username" placeholder="username" className="text-field" id="username"></TextField>
+                    <TextField disabled={!!props.data.username} name="password" placeholder="password" type="password" className="text-field" id="password"></TextField>
+                    <PrimaryButton disabled={!!props.data.username} as="input" type="submit">Authenticate</PrimaryButton>
+                    {
+                        props.data.username ? (
+                            <>
+                                <Dropdown
+                                    label="Go on pick your Domain and then please come-in 🎟"
+                                    selectedKey={domain}
+                                    placeHolder={"select one here"}
+                                    onChange={(event, item) => setDomain(item.data)}
+                                    options={props.data.domains.map(domain => {
+                                        return {
+                                            key: domain.name,
+                                            text: domain.name,
+                                            data: domain.name,
+                                        }
+                                    })}
+                                ></Dropdown>
+                                <input type="hidden" name="currentDomain" value={domain} />
+                                <div className="domain-confirm-actions" style={{textAlign: 'right'}}>
+                                    <PrimaryButton as="input" name="action" value="cancel" type="submit">Cancel</PrimaryButton>
+                                    <PrimaryButton as="input" name="action" value="proceed" type="submit">Proceed</PrimaryButton>
+                                </div>
+                            </>
+                        ) : null
+                    }
+                </form>
+                <Label style={{ marginTop: 8, fontSize: FontSizes.mini }}>Made with 💚 at Phrakanong Bangkok</Label>
+            </div>
+
+        </Fabric>
     )
 }
 render(<LoginPage data={window.__DATA__}></LoginPage>, document.getElementById("pakkretqc-root"))

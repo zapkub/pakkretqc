@@ -16,6 +16,8 @@
   "dependencies": {
     "@fluentui/react": "^7.155.4",
     "react": "^16.14.0",
-    "react-dom": "^16.14.0"
+    "react-dom": "^16.14.0",
+    "react-timeago": "^5.2.0",
+    "timeago.js": "^4.0.2"
   }
 }

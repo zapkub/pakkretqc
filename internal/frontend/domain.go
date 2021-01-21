@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/zapkub/pakkretqc/internal/middleware"
 	"github.com/zapkub/pakkretqc/pkg/almsdk"
 )
 
@@ -15,12 +16,13 @@ type domainPage struct {
 
 func (s *Server) domainHandler(w http.ResponseWriter, r *http.Request) {
 	var (
-		page domainPage
-		ctx  = almsdk.AppendSessionCookieToContext(r.Context(), r)
+		page      domainPage
+		ctx       = r.Context()
+		almclient = middleware.MustGetALMClient(ctx)
 	)
 
 	vars := mux.Vars(r)
-	projects, err := s.almclient.Projects(ctx, vars["domain"])
+	projects, err := almclient.Projects(ctx, vars["domain"])
 	if err != nil {
 		log.Printf("ERROR: %+v", err)
 		return
