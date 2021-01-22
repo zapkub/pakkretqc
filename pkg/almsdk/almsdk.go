@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
@@ -13,6 +14,26 @@ import (
 	"strings"
 	"time"
 )
+
+func NewALMError(resp *http.Response) error {
+	var almerr ALMError
+	var err error
+	almerr.Body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	almerr.Code = resp.StatusCode
+	return &almerr
+}
+
+type ALMError struct {
+	Body []byte
+	Code int
+}
+
+func (a *ALMError) Error() string {
+	return fmt.Sprintf("%d: %s", a.Code, string(a.Body))
+}
 
 type Client struct {
 	client *http.Client
@@ -54,6 +75,8 @@ func (c *Client) setTokenToRequest(ctx context.Context, req *http.Request) {
 	}
 }
 
+var InvalidCredential = fmt.Errorf("invalid credential")
+
 func (c *Client) Authenticate(ctx context.Context, authtoken string) error {
 
 	req, err := http.NewRequest("POST", join(c.config.Endpoint, "authentication/sign-in").String(), nil)
@@ -63,8 +86,12 @@ func (c *Client) Authenticate(ctx context.Context, authtoken string) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
 		respb, _ := ioutil.ReadAll(resp.Body)
+		if resp.StatusCode == 401 {
+			return InvalidCredential
+		}
 		return fmt.Errorf("login return %d: %s", resp.StatusCode, string(respb))
 	}
 	c.token = authtoken
@@ -84,6 +111,7 @@ func (c *Client) Projects(ctx context.Context, domain string) ([]Projects, error
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode > 300 {
 		message, _ := ioutil.ReadAll(resp.Body)
@@ -109,17 +137,15 @@ type Domains struct {
 func (c *Client) Domains(ctx context.Context) ([]*Domains, error) {
 	var req, _ = http.NewRequest("GET", join(c.config.Endpoint, "domains").String(), nil)
 	req.Header.Set("Accept", "application/json")
-
 	c.setTokenToRequest(ctx, req)
 
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode > 300 {
-		bb, _ := ioutil.ReadAll(resp.Body)
-		fmt.Println(string(bb))
 		return nil, fmt.Errorf("unexpected error: /domains return %d status", resp.StatusCode)
 	}
 
@@ -184,12 +210,13 @@ func (c *Client) Defect(ctx context.Context, domain, project, id string) (*Defec
 
 	var req, _ = http.NewRequest("GET", join(c.config.Endpoint, "domains", domain, "projects", project, "defects", id).String(), nil)
 	req.Header.Set("Accept", "application/json")
-
 	c.setTokenToRequest(ctx, req)
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode > 300 {
 		message, _ := ioutil.ReadAll(resp.Body)
 		return nil, fmt.Errorf("unexpected error: /domains/%s/projects/%s/defects return %d status\n%s", domain, project, resp.StatusCode, string(message))
@@ -211,6 +238,7 @@ func (c *Client) Defects(ctx context.Context, domain, project string, limit, off
 	if err != nil {
 		return nil, 0, err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode > 300 {
 		message, _ := ioutil.ReadAll(resp.Body)
@@ -227,4 +255,69 @@ func (c *Client) Defects(ctx context.Context, domain, project string, limit, off
 	}
 	return body.Data, 0, nil
 
+}
+
+type Attachment struct {
+	Type         string      `json:"type"`
+	LastModified string      `json:"last-modified"`
+	VcCurVer     interface{} `json:"vc-cur-ver"`
+	VcUserName   interface{} `json:"vc-user-name"`
+	Name         string      `json:"name"`
+	FileSize     int         `json:"file-size"`
+	RefSubtype   int         `json:"ref-subtype"`
+	Description  interface{} `json:"description"`
+	ID           int         `json:"id"`
+	RefType      string      `json:"ref-type"`
+	Entity       struct {
+		ID   int    `json:"id"`
+		Type string `json:"type"`
+	} `json:"entity"`
+}
+
+func (c *Client) Attachments(ctx context.Context, domain, project string, query string, limit, offset int) ([]*Attachment, error) {
+	var req, _ = http.NewRequest("GET", join(c.config.Endpoint, "domains", domain, "projects", project, "attachments").String(), nil)
+	q := req.URL.Query()
+	q.Add("query", fmt.Sprintf("\"%s\"", query))
+	if limit <= 0 {
+		limit = 20
+	}
+	if offset <= 0 {
+		offset = 0
+	}
+	q.Add("limit", strconv.Itoa(limit))
+	q.Add("offset", strconv.Itoa(offset))
+	req.URL.RawQuery = q.Encode()
+	fmt.Println(req.URL.String())
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		return nil, NewALMError(resp)
+	}
+	type respbody struct {
+		Data []*Attachment `json:"data"`
+	}
+	var body respbody
+	err = json.NewDecoder(resp.Body).Decode(&body)
+	if err != nil {
+		return nil, err
+	}
+	return body.Data, nil
+}
+
+func (c *Client) Attachment(ctx context.Context, domain, project string, id string, w io.Writer) error {
+	var req, _ = http.NewRequest("GET", join(c.config.Endpoint, "domains", domain, "projects", project, "attachments", id).String(), nil)
+	req.Header.Set("Accept", "application/json")
+	c.setTokenToRequest(ctx, req)
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	_, err = io.Copy(w, resp.Body)
+	if err != nil {
+		return err
+	}
+	return nil
 }

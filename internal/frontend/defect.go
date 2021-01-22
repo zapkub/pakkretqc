@@ -1,6 +1,7 @@
 package frontend
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -9,7 +10,8 @@ import (
 )
 
 type defectPage struct {
-	Defect *almsdk.Defect `json:"defect"`
+	Defect     *almsdk.Defect       `json:"defect"`
+	Attachment []*almsdk.Attachment `json:"attachment"`
 }
 
 func (s *Server) defectPageHandler(w http.ResponseWriter, r *http.Request) {
@@ -28,6 +30,12 @@ func (s *Server) defectPageHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	page.Defect = deflect
+
+	attachment, err := almclient.Attachments(ctx, domain, project, fmt.Sprintf("parent-id = %s ; parent-type = '%s'", id, "defect"), 10, 0)
+	if err != nil {
+		panic(err)
+	}
+	page.Attachment = attachment
 
 	s.servePage(w, "defect", page)
 }

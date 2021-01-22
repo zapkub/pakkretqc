@@ -2,6 +2,7 @@ package frontend
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,8 +14,9 @@ import (
 )
 
 type loginPage struct {
-	Username string            `json:"username"`
-	Domains  []*almsdk.Domains `json:"domains"`
+	Username     string            `json:"username"`
+	Domains      []*almsdk.Domains `json:"domains"`
+	ErrorMessage string            `json:"errorMessage"`
 }
 
 func (s *Server) loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -35,6 +37,10 @@ func (s *Server) loginHandler(w http.ResponseWriter, r *http.Request) {
 			err := almclient.Authenticate(ctx, token)
 			if err != nil {
 				log.Println(err)
+				if errors.Is(err, almsdk.InvalidCredential) {
+					loginPage.ErrorMessage = "Cannot login to ALM server. maybe your credential is invalid I guesss 🤔"
+				}
+				return
 			}
 			log.Printf("login with %s success", username)
 			domains, err := almclient.Domains(ctx)

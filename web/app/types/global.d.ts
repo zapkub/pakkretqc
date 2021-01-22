@@ -13,3 +13,22 @@ declare interface Deflect {
     url: string
 
 }
+
+declare interface Attachment {
+
+    type: string;
+    "last-modified": string;
+    "vc-cur-ver"?: any;
+    "vc-user-name"?: any;
+    name: string;
+    "file-size": number;
+    "ref-subtype": number;
+    description?: any;
+    id: number;
+    "ref-type": string;
+    entity: {
+        id: string
+        type: string
+    };
+
+}

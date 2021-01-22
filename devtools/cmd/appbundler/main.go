@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -36,11 +37,11 @@ func build() {
 		Define: map[string]string{
 			"process.env.NODE_ENV": "'development'",
 		},
-		// MinifySyntax:      true,
-		// MinifyIdentifiers: true,
-		// MinifyWhitespace:  true,
-		Platform: api.PlatformBrowser,
-		Tsconfig: fsutil.PathFromWebDir("app/tsconfig.json"),
+		MinifySyntax:      true,
+		MinifyIdentifiers: true,
+		MinifyWhitespace:  true,
+		Platform:          api.PlatformBrowser,
+		Tsconfig:          fsutil.PathFromWebDir("app/tsconfig.json"),
 	})
 
 	if len(result.Errors) > 0 {
@@ -52,20 +53,39 @@ func build() {
 }
 
 func main() {
+
+	var watch bool
+	flag.BoolVar(&watch, "w", false, "watch change")
+	flag.Parse()
+
 	var sig = make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGTERM, syscall.SIGKILL, syscall.SIGINT)
 	var reload = make(chan struct{}, 1)
 	build()
+
+	if !watch {
+		return
+	}
 	go watchGlob(reload, strings.Join([]string{
 		fsutil.PathFromWebDir("app/*/**"),
 		fsutil.PathFromWebDir("app/*"),
 		fsutil.PathFromWebDir("styles/*"),
 		fsutil.PathFromWebDir("common/*"),
 	}, ","))
+
+	serv := exec.Command("go", "run", "cmd/pakkretqc/main.go")
+	serv.Stderr = log.Writer()
+	serv.Stdout = os.Stdout
+	err := serv.Start()
+	if err != nil {
+		panic(err)
+	}
+
 	for {
 		select {
 		case <-sig:
 			fmt.Println("signal for kill this command...")
+			serv.Process.Signal(syscall.SIGTERM)
 			os.Exit(0)
 		case <-reload:
 			build()
