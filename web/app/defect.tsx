@@ -1,11 +1,14 @@
-import { Fabric, Text } from '@fluentui/react'
+import { Fabric } from '@fluentui/react'
 import * as React from 'react'
 import { render } from 'react-dom'
+import { Attachments, DefectDetail } from './components'
 
 interface DefectPageProps {
     data: {
-        defect: Deflect
+        defect: Defect
         attachment: Attachment[]
+        project: string
+        domain: string
     }
 }
 
@@ -13,29 +16,13 @@ const DefectPage = (props: DefectPageProps) => {
 
     return (
         <Fabric>
-            {props.data.defect.name}
-            <div>
-                <div dangerouslySetInnerHTML={{
-                    __html: props.data.defect.description,
-                }}></div>
-                <div dangerouslySetInnerHTML={{
-                    __html: props.data.defect["dev-comments"],
-                }}></div>
-            </div>
-
-            <div>
-                <h2>Attachments</h2>
-                {
-                    props.data.attachment.map(attach => {
-                        return (
-                            <div key={attach.id}>
-                                <Text>
-                                    {attach.id} <a href=""> {attach.name} </a>
-                                </Text>
-                            </div>
-                        )
-                    })
-                }
+            <div className="defect-container">
+                <div className="defect-detail-container" >
+                    <DefectDetail {...props.data.defect} />
+                </div>
+                <div className="defect-attachments-container">
+                    <Attachments domain={props.data.domain} project={props.data.project} attachments={props.data.attachment} />
+                </div>
             </div>
         </Fabric>
     )

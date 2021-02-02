@@ -1,6 +1,6 @@
 {
   "name": "pakkretqc",
-  "version": "1.0.0",
+  "version": "0.0.2",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,8 @@
   "devDependencies": {
     "@types/react": "^16.14.2",
     "@types/react-dom": "^16.9.10",
-    "esbuild": "^0.8.33"
+    "esbuild": "^0.8.33",
+    "showdown": "^1.9.1"
   },
   "dependencies": {
     "@fluentui/react": "^7.155.4",

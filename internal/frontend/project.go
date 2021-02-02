@@ -34,16 +34,16 @@ func (s *Server) projectHandler(w http.ResponseWriter, r *http.Request) {
 		almclient = middleware.MustGetALMClient(ctx)
 	)
 
+	page.Project = project
+	page.Domain = domain
 	defer func() {
 		s.servePage(w, "project", page)
 	}()
-	deflect, total, err := almclient.Defects(ctx, domain, project, 50, 0, "-creation-time")
+	deflect, total, err := almclient.Defects(ctx, domain, project, 50, 0, "-creation-time", r.FormValue("query"))
 	if err != nil {
 		log.Printf("ERROR: %+v", err)
 		return
 	}
-	page.Project = project
-	page.Domain = domain
 	for _, d := range deflect {
 		page.Defects = append(page.Defects, &defectWithURL{Defect: d, URL: path.Join("/domains", domain, "/projects", project, "/defects", strconv.Itoa(d.ID))})
 	}

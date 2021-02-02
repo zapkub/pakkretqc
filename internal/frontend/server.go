@@ -15,6 +15,7 @@ type Server struct {
 
 func (s *Server) Install(handle func(string, http.Handler)) {
 	handle("/login", http.HandlerFunc(s.loginHandler))
+	handle("/domains/{domain}/projects/{project}/attachments/{id}", http.HandlerFunc(s.attachmentDownloadHandler))
 	handle("/domains/{domain}/projects/{project}/defects/{id}", http.HandlerFunc(s.defectPageHandler))
 	handle("/domains/{domain}/projects/{project}", http.HandlerFunc(s.projectHandler))
 	handle("/domains/{domain}", http.HandlerFunc(s.domainHandler))

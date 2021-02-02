@@ -2,6 +2,7 @@ package frontend
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -12,6 +13,8 @@ import (
 type defectPage struct {
 	Defect     *almsdk.Defect       `json:"defect"`
 	Attachment []*almsdk.Attachment `json:"attachment"`
+	Project    string               `json:"project"`
+	Domain     string               `json:"domain"`
 }
 
 func (s *Server) defectPageHandler(w http.ResponseWriter, r *http.Request) {
@@ -36,6 +39,26 @@ func (s *Server) defectPageHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	page.Attachment = attachment
+	page.Domain = domain
+	page.Project = project
 
 	s.servePage(w, "defect", page)
+}
+
+func (s *Server) attachmentDownloadHandler(w http.ResponseWriter, r *http.Request) {
+
+	var (
+		ctx       = r.Context()
+		vars      = mux.Vars(r)
+		domain    = vars["domain"]
+		project   = vars["project"]
+		id        = vars["id"]
+		almclient = middleware.MustGetALMClient(ctx)
+	)
+
+	err := almclient.Attachment(ctx, domain, project, id, w)
+	if err != nil {
+		log.Printf("ERROR: %+v", err)
+	}
+
 }

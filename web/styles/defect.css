@@ -1,0 +1,13 @@
+
+.defect-container {
+    display: flex;
+}
+
+.defect-detail-container {
+    margin: 4px 16px;
+    flex-grow: 1;
+}
+
+.defect-attachments-container {
+    margin: 4px 16px;
+}

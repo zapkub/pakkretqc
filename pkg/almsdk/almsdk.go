@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mime"
+	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -169,6 +171,7 @@ type Defect struct {
 	Status       string   `json:"user-46"`
 	Owner        string   `json:"owner"`
 	Severity     string   `json:"severity"`
+	DetectedBy   string   `json:"detected-by"`
 	Name         string   `json:"name"`
 	ID           int      `json:"id"`
 }
@@ -225,15 +228,20 @@ func (c *Client) Defect(ctx context.Context, domain, project, id string) (*Defec
 	err = json.NewDecoder(resp.Body).Decode(&deflect)
 	return &deflect, nil
 }
-func (c *Client) Defects(ctx context.Context, domain, project string, limit, offset int, orderFlag string) ([]*Defect, int, error) {
+
+func (c *Client) Defects(ctx context.Context, domain, project string, limit, offset int, orderFlag string, qq string) ([]*Defect, int, error) {
 
 	var req, _ = http.NewRequest("GET", join(c.config.Endpoint, "domains", domain, "projects", project, "defects").String(), nil)
 	req.Header.Set("Accept", "application/json")
 	q := req.URL.Query()
 	q.Add("order-by", orderFlag)
 	q.Add("limit", strconv.Itoa(limit))
+	if qq != "" {
+		q.Add("query", fmt.Sprintf("\"%s\"", qq))
+	}
 	req.URL.RawQuery = q.Encode()
 	c.setTokenToRequest(ctx, req)
+	fmt.Println(req.URL.String())
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, 0, err
@@ -274,6 +282,9 @@ type Attachment struct {
 	} `json:"entity"`
 }
 
+func IsNetworkError(err error) {
+}
+
 func (c *Client) Attachments(ctx context.Context, domain, project string, query string, limit, offset int) ([]*Attachment, error) {
 	var req, _ = http.NewRequest("GET", join(c.config.Endpoint, "domains", domain, "projects", project, "attachments").String(), nil)
 	q := req.URL.Query()
@@ -287,7 +298,6 @@ func (c *Client) Attachments(ctx context.Context, domain, project string, query 
 	q.Add("limit", strconv.Itoa(limit))
 	q.Add("offset", strconv.Itoa(offset))
 	req.URL.RawQuery = q.Encode()
-	fmt.Println(req.URL.String())
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -308,16 +318,21 @@ func (c *Client) Attachments(ctx context.Context, domain, project string, query 
 
 func (c *Client) Attachment(ctx context.Context, domain, project string, id string, w io.Writer) error {
 	var req, _ = http.NewRequest("GET", join(c.config.Endpoint, "domains", domain, "projects", project, "attachments", id).String(), nil)
-	req.Header.Set("Accept", "application/json")
 	c.setTokenToRequest(ctx, req)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	_, err = io.Copy(w, resp.Body)
-	if err != nil {
-		return err
+	_, params, _ := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	mr := multipart.NewReader(resp.Body, params["boundary"])
+	for part, err := mr.NextPart(); err == nil; part, err = mr.NextPart() {
+		if part.FormName() == "content" {
+			_, err = io.Copy(w, part)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }

@@ -1,4 +1,4 @@
-import { DetailsList, IColumn, Link, mergeStyleSets, SelectionMode } from '@fluentui/react';
+import { DetailsList, IColumn, Link, mergeStyleSets, SelectionMode, Text } from '@fluentui/react';
 import * as React from 'react';
 import * as timeago from 'timeago.js';
 
@@ -25,7 +25,11 @@ const columns: IColumn[] = [
         maxWidth: 55,
         data: 'string',
         className: classNames.severifyCell,
-        isRowHeader: true
+        isRowHeader: true,
+        onRender: (item) => {
+            return severityMap(item['severity'])
+                    // rec.severity = severityMap(rec.severity)
+        }
     },
     {
         key: 'col3',
@@ -68,7 +72,7 @@ const columns: IColumn[] = [
     },
 ]
 
-export const DefectTable = (props: { data: Deflect[] }) => {
+export const DefectTable = (props: { data: Defect[] }) => {
 
     return (
         <div>
@@ -78,10 +82,12 @@ export const DefectTable = (props: { data: Deflect[] }) => {
                 items={props.data.map(rec => {
                     rec["creation-time"] = new Date(rec["creation-time"]).toLocaleDateString()
                     rec["last-modified"] = timeago.format(rec["last-modified"])
-                    rec.severity = severityMap(rec.severity)
                     return rec
                 })}
             ></DetailsList>
+            {
+                props.data.length === 0 ? <div style={{textAlign: 'center'}}><Text>No data</Text></div> : null
+            }
         </div>
     )
 }

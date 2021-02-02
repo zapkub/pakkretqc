@@ -1,6 +1,6 @@
 
 declare interface Window { __DATA__: any }
-declare interface Deflect {
+declare interface Defect {
     "user-46": string // this is status
     owner: string
     name: string
@@ -9,6 +9,7 @@ declare interface Deflect {
     "dev-comments": string
     "last-modified": string
     "creation-time": string
+    "detected-by": string
 
     url: string
 

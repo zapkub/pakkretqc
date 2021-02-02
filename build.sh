@@ -16,3 +16,4 @@ export GOARCH=amd64
 go build -tags=prod -o ./dist/pakkretqc/bin/pakkretqc ./cmd/pakkretqc/main.go
 
 cp -R web/ ./dist/pakkretqc/web
+cp CHANGELOG.md ./dist/pakkretqc/CHANGELOG.md

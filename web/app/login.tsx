@@ -1,7 +1,8 @@
 
-import { Dropdown, Fabric, FontSizes, Label, PrimaryButton, Text, TextField } from '@fluentui/react';
+import { Dropdown, Fabric, PrimaryButton, Text, TextField } from '@fluentui/react';
 import * as React from 'react';
 import { render } from 'react-dom';
+import { MadeWithLove } from './components';
 
 
 
@@ -18,6 +19,7 @@ export const LoginPage = (props: { data: LoginPageData }) => {
     return (
         <Fabric className="content">
             <div className="login-form-container" style={{}}>
+                <h1>PakkretQC</h1>
                 <h2>Before you begin please sign-in 🚪</h2>
                 <form className="login-form" method="POST" action="/login">
                     <TextField disabled={!!props.data.username} defaultValue={props.data.username} name="username" placeholder="username" className="text-field" id="username"></TextField>
@@ -54,7 +56,7 @@ export const LoginPage = (props: { data: LoginPageData }) => {
                         ) : null
                     }
                 </form>
-                <Label style={{ textAlign: 'right', marginTop: 8, fontSize: FontSizes.mini }}>Made with 💚 at Phrakanong Bangkok</Label>
+                <MadeWithLove></MadeWithLove>
             </div>
 
         </Fabric>

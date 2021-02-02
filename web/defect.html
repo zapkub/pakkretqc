@@ -1,9 +1,12 @@
 {{define "head_tags"}}
-<link rel="stylesheet" href="/dist/styles/defect.css"></link>
+<link rel="stylesheet" href="/dist/styles/defect.css">
+</link>
 {{end}}
+
+
 {{define "scripts"}}
-    <script>
-        window.__DATA__ = JSON.parse("{{toJSON .}}")
-    </script>
-    <script type="module" src="/dist/defect.js" defer></script>
+<script>
+    window.__DATA__ = JSON.parse("{{toJSON .}}")
+</script>
+<script type="module" src="/dist/defect.js" defer></script>
 {{end}}
